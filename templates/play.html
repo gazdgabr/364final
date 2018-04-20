@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content1 %}
+<h2> Answer Some Trivia Questions!:</h2><br><br>
+<ul>
+  {% for q in questionlist %}
+    <li><b>{{ q }}</b></li><br>
+    <form action="{{ url_for('trivia_answers') }}" method="POST">
+        {{ form.answer.label() }}{{ form.answer() }}<br>
+  {% endfor %}
+  <br>{{ form.submit() }}
+  {{ form.hidden_tag() }}
+  </form>
+  </ul>
+  <br><br>
+
+  {% if cont %}
+    <h2>Here are the details of your new identity!</h2><br>
+    {% for each in alias_info %}
+      {{ each }} <br>
+    {% endfor %}
+  {% endif %}
+
+{% endblock %}

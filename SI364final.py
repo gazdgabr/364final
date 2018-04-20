@@ -123,6 +123,7 @@ class WrongAnswer(db.Model):
     question_id = db.Column(db.Integer, db.ForeignKey("questions.id"))
 
 class UserAnswer(db.Model):
+    #TODO: GET RID OF THIS
     __tablename__ = "answers"
     id = db.Column(db.Integer, primary_key=True)
     correct = db.Column(db.Integer)
@@ -163,6 +164,7 @@ def get_google_auth(state=None, token=None):
 ######################################
 #############  FORMS  ################
 ######################################
+
 class TriviaParams(FlaskForm):
     number = IntegerField("How many trivia questions do you want to try? ", validators=[Required()])
     category = RadioField('Choose a category: ', choices=[('any','Any'),('9','General Knowledge'),('10','Entertainment: Books'),('29','Entertainment: Comics'),('11','Entertainment: Film'),('12','Entertainment: Music'),('13','Entertainment: Musicals & Theater'),('14','Entertainment: Television'),('15','Entertainment: Video Games'), ('16','Entertainment: Board Games'), ('31','Entertainment: Japanese Anime & Manga'), ('32','Entertainment: Cartoon & Animations'),('17','Science & Nature'), ('18','Science: Computers'),('19','Science: Mathematics'),('30','Science: Gadgets'),('20','Mythology'),('21','Sports'),('22','Geography'),('23','History'),('24','Politics'),('25','Art'),('26','Celebrities'),('27','Animals'),('28','Vehicles')], validators=[Required()])
@@ -170,61 +172,80 @@ class TriviaParams(FlaskForm):
     type = RadioField('Choose a type: ', choices=[('any','Any'),('multiple','Multiple Choice'),('boolean','True / False')], validators=[Required()])
     submit = SubmitField()
 
+class Answers(FlaskForm):
+    answer = StringField("Enter your answer: ")
+    submit = SubmitField()
+
 ######################################
 ########  HELPER FUNCTIONS  ##########
 ######################################
-def grab_session_token(current_user):
-    if current_user.api_token:
-        return current_user.api_token
-    else:
-        user = User.query.filter_by(id=current_user.id).first()
-        token_url = "https://opentdb.com/api_token.php?command=request"
-        token_dict = json.loads(requests.get(token_url).text)
-        new_token = token_dict["token"]
-        user.api_token = new_token
-        db.session.add(user)
-        current_user.api_token.append(new_token)
-        db.session.commit()
-        return current_user.api_token
+def grab_session_token():
+    token_url = "https://opentdb.com/api_token.php?command=request"
+    token_dict = json.loads(requests.get(token_url).text)
+    token = token_dict["token"]
+    return token
 
-def get_trivia_questions(amount, category, difficulty, type):
+def hit_trivia_api(category, difficulty, type):
     session = grab_session_token()
     base_url = 'https://opentdb.com/api.php?'
 
     if category == 'any' or type == "any":
-        params_dict = {"amount":amount, "difficulty":difficulty, "token":session}
+        params_dict = {"amount":'1', "difficulty":difficulty, "token":session}
         raw_result = json.loads(requests.get(base_url, params=params_dict).text)
 
     else:
-        params_dict = {"amount":amount, "category":category, "difficulty":difficulty, "type":type, "token":session}
+        params_dict = {"amount":'1', "category":category, "difficulty":difficulty, "type":type, "token":session}
         raw_result = json.loads(requests.get(base_url, params=params_dict).text)
-        print(raw_result)
     return raw_result
+
+def create_trivia(db_session, category, difficulty, type):
+    api_result = hit_trivia_api(category, difficulty, type)
+    Quest = api_result['results'][0]['question']
+    correctA = api_result['results'][0]['correct_answer']
+    incorrectAs = api_result['results'][0]['incorrect_answers']
+
+    new_trivia = Trivia(text=Quest, category=category, difficulty=difficulty, type=type, correct=correctA)
+    db_session.add(new_trivia)
+    db_session.commit()
+    for ia in incorrectAs:
+        wrong_ans = WrongAnswer(wrong=ia, question_id=new_trivia.id)
+        db_session.add(wrong_ans)
+        db_session.commit()
+
+    return new_trivia
 
 ######################################
 ##########  ROUTES/VIEWS  ############
 ######################################
 
+"""Should render a home template that contains the global navigation
+and main input form where users can set parameters for their trivia questions."""
 @app.route('/', methods=["GET","POST"])
 @login_required
 def home():
     form = TriviaParams()
-    """Should render a home template that contains the global navigation
-    and main input form where users can set parameters for their trivia questions."""
     return render_template('base.html', form=form)
 
+"""This route should send user's input to the API and return/display trivia
+questions for the user to answer."""
 @app.route('/trivia', methods=["GET","POST"])
 @login_required
 def play_trivia():
-    """This route should send user's input to the API and return/display trivia
-    questions for the user to answer."""
-    pass
+    answerform = Answers()
+    if request.method == "POST" and form.validate_on_submit():
+        params_list = []
+        params_list.append(form.number.data, form.category.data, form.difficulty.data, form.type.data)
+        gen_qs = create_trivia(params_list[0], params_list[1], params_list[2], params_list[3])
+        ## TODO get all question text into a list and pass it to this template
+        #return render_template('play.html', form=answerform, questionlist=)
+        pass
 
 @app.route('/answers', methods=["GET","POST"])
 @login_required
 def trivia_answers():
     """This route should retrieve and display the correct answers for the trivia
-    questions that the user answered and compare them to their answers."""
+    questions that the user answered and compare them to their answers. WILL
+    POST TO SAME PAGE."""
     pass
 
 @app.route('/scorescreen', methods=["GET","POST"])
