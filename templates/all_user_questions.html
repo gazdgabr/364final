@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div>
+{% for message in get_flashed_messages() %}
+<strong>*** {{ message }} ***</strong>
+{% endfor %}
+</div>
+
+{% if not qs %}
+<b>You haven't made any questions.<b>
+
+{% else %}
+<h3>Your Trivia Questions</h3>
+
+<ul>
+    {% for q in qs %}
+        <li><b>Question:</b> {{ q.new_text }}<br>
+        <b>Answer:</b> {{ q.new_answer }}</li><br>
+        <form method="POST" action="/delete/{{ q.id }}">
+             {{ delform.hidden_tag() }}
+             {{ delform.submit }}
+         </form>
+         <form method="POST" action="/update/{{ q.id }}">
+              {{ upform.hidden_tag() }}
+              {{ upform.submit }}
+          </form>
+    {% endfor %}
+</ul>
+{% endif %}
+
+{% endblock %}

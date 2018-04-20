@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2> Create Your Own Trivia Question!</h2><br><br>
+    <form method="POST">
+        {{ form.question.label() }}{{ form.question() }}<br>
+        {{ form.answer.label() }}{{ form.answer() }}<br>
+  <br>{{ form.submit() }}
+  {{ form.hidden_tag() }}
+  </form>
+  <br><br>
+
+  <div>
+  {% for message in get_flashed_messages() %}
+      {{ message }}
+  {% endfor %}
+  </div>
+
+{% endblock %}

@@ -1,13 +1,10 @@
 <div class="page-header">
     <h1>Trivia Game!</h1>
 </div>
-{% block content1 %}
 
 {% if current_user.is_authenticated %}
 <p>Welcome, {{ current_user.name }}</p> <img height="50" width="50" src="{{ current_user.avatar }}" />
 {% endif %}
-
-{% endblock %}
 
 {% block nav %}
 <p>------------</p>
@@ -27,10 +24,8 @@
 
 {% block content %}
 <form action="{{ url_for('play_trivia') }}" method="POST">
-    {{ form.number.label() }}{{ form.number() }}<br><br>
     {{ form.category.label() }}{{ form.category() }}<br>
     {{ form.difficulty.label() }}{{ form.difficulty() }}<br>
-    {{ form.type.label() }}{{ form.type() }}<br>
     {{ form.submit() }}
     {{ form.hidden_tag() }}
 </form>

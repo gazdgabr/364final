@@ -1,24 +1,23 @@
 {% extends 'base.html' %}
 
 {% block content1 %}
-<h2> Answer Some Trivia Questions!:</h2><br><br>
+<h2> Answer a Trivia Question!:</h2><br><br>
 <ul>
-  {% for q in questionlist %}
     <li><b>{{ q }}</b></li><br>
-    <form action="{{ url_for('trivia_answers') }}" method="POST">
-        {{ form.answer.label() }}{{ form.answer() }}<br>
-  {% endfor %}
+    <form action="{{ url_for('play_trivia') }}" method="POST">
+        {{ form.option.label() }}{{ form.option() }}<br> <!-- Need to figure out if this will take input to all, not just one, given that multiple answers will be input. Will they overwrite? -->
   <br>{{ form.submit() }}
   {{ form.hidden_tag() }}
   </form>
   </ul>
   <br><br>
-
+<!--
   {% if cont %}
-    <h2>Here are the details of your new identity!</h2><br>
-    {% for each in alias_info %}
+    <h3>See Answers: </h3><br>
+    {% for ca in correct_answs %}
       {{ each }} <br>
     {% endfor %}
   {% endif %}
 
 {% endblock %}
+-->
