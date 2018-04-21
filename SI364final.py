@@ -3,6 +3,7 @@ import json
 import requests
 import re
 import datetime
+import random
 
 from flask import Flask, url_for, redirect, render_template, session, request, flash
 from flask_sqlalchemy import SQLAlchemy
@@ -83,17 +84,14 @@ def make_shell_context():
 
 manager.add_command("shell", Shell(make_context=make_shell_context))
 
-
 ######################################
 #############  MODELS  ###############
 ######################################
 
 ##### Association Table #####
 user_questions = db.Table('user_questions',db.Column('question_id',db.Integer, db.ForeignKey('questions.id')),db.Column('user_id',db.Integer, db.ForeignKey('users.id')))
-#user_trivia = db.Table('user_trivia',db.Column('new_question_id',db.Integer, db.ForeignKey('new.id')),db.Column('user_id',db.Integer, db.ForeignKey('users.id')))
-# I think new questions and users should just be a one-to-many relationship
 
-# For Google-specific auth
+""" For Google-specific auth """
 class User(db.Model, UserMixin):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
@@ -149,6 +147,8 @@ def get_google_auth(state=None, token=None):
         scope=Auth.SCOPE)
     return oauth
 
+SuperCorrect = "MEow"
+
 ######################################
 #############  FORMS  ################
 ######################################
@@ -156,13 +156,27 @@ def get_google_auth(state=None, token=None):
 class TriviaParams(FlaskForm):
     category = RadioField('Choose a category: ', choices=[('any','Any'),('9','General Knowledge'),('10','Entertainment: Books'),('29','Entertainment: Comics'),('11','Entertainment: Film'),('12','Entertainment: Music'),('13','Entertainment: Musicals & Theater'),('14','Entertainment: Television'),('15','Entertainment: Video Games'), ('16','Entertainment: Board Games'), ('31','Entertainment: Japanese Anime & Manga'), ('32','Entertainment: Cartoon & Animations'),('17','Science & Nature'), ('18','Science: Computers'),('19','Science: Mathematics'),('30','Science: Gadgets'),('20','Mythology'),('21','Sports'),('22','Geography'),('23','History'),('24','Politics'),('25','Art'),('26','Celebrities'),('27','Animals'),('28','Vehicles')], validators=[Required()])
     difficulty = RadioField('Choose a difficulty: ', choices=[('easy','Easy'),('medium','Medium'),('hard','Hard')], validators=[Required()])
-    type = RadioField('Choose a type: ', choices=[('any','Any'),('multiple','Multiple Choice'),('boolean','True / False')], validators=[Required()])
+    submit = SubmitField()
+
+class PlayTrivia(FlaskForm):
+    option =  RadioField('', choices=[], validators=[Required()])
+    Corr = "meow"
     submit = SubmitField()
 
 class CreateYourOwn(FlaskForm):
     question = StringField("Enter a new trivia question: ", validators=[Required()])
     answer = StringField("Enter its answer: ", validators=[Required()])
     submit = SubmitField()
+
+    def validate_question(self, field):
+        q = re.findall("^.*?$", field.data)
+        if len(q) == 0:
+            raise ValidationError("Don't forget the question mark!")
+
+    def validate_answer(self, field):
+        q = re.findall("?", field.data)
+        if len(q) != 0:
+            raise ValidationError("Be more confident in your answer!")
 
 class UpdateButtonForm(FlaskForm):
     submit = SubmitField('Update')
@@ -178,7 +192,7 @@ class DeleteButtonForm(FlaskForm):
 ######################################
 ########  HELPER FUNCTIONS  ##########
 ######################################
-# TODO: make tokens for each current user and save to DB
+
 def grab_session_token():
     token_url = "https://opentdb.com/api_token.php?command=request"
     token_dict = json.loads(requests.get(token_url).text)
@@ -189,12 +203,12 @@ def hit_trivia_api(category, difficulty, type):
     session = grab_session_token()
     base_url = 'https://opentdb.com/api.php?'
 
-    if category == 'any' or type == "any":
-        params_dict = {"amount":'1', "difficulty":difficulty, "token":session}
+    if category == 'any':
+        params_dict = {"amount":'1', "difficulty":difficulty, "type":"multiple", "token":session}
         raw_result = json.loads(requests.get(base_url, params=params_dict).text)
 
     else:
-        params_dict = {"amount":'1', "category":category, "difficulty":difficulty, "type":type, "token":session}
+        params_dict = {"amount":'1', "category":category, "difficulty":difficulty, "type":"multiple", "token":session}
         raw_result = json.loads(requests.get(base_url, params=params_dict).text)
     return raw_result
 
@@ -223,9 +237,11 @@ def get_or_create_new_question(db_session, q_text, a_text):
         db_session.add(newQ)
         db_session.commit()
         return newQ
+
 ######################################
 ###########  ERROR HANDLING ##########
 ######################################
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('404.html'), 404
@@ -238,47 +254,37 @@ def internal_server_error(e):
 ##########  ROUTES/VIEWS  ############
 ######################################
 
-"""Should render a home template that contains the global navigation
-and main input form where users can set parameters for their trivia questions."""
+"""Should render a home template that contains the global navigation and main input form where users can set parameters for their trivia questions."""
 @app.route('/', methods=["GET","POST"])
 @login_required
 def home():
     form = TriviaParams()
     return render_template('base.html', form=form)
 
-"""This route should send user's input to the API and return/display trivia
-questions for the user to answer."""
+"""This route should send user's input to the API and return/display trivia questions for the user to answer."""
 @app.route('/trivia', methods=["GET","POST"])
 @login_required
 def play_trivia():
-    answerform = Answers()
-    if request.method == "POST" and form.validate_on_submit():
-        params_list = []
-        params_list.append(form.category.data, form.difficulty.data, form.type.data)
-        gen_qs = create_trivia(params_list[0], params_list[1], params_list[2], params_list[3])
-        ## TODO get all question text into a list and pass it to this template
-        #return render_template('play.html', form=answerform, questionlist=)
-        pass
+    choices = {}
+    global SuperCorrect
+    answerform = PlayTrivia()
+    if request.method == "GET":
+        Categ = request.args.get('category')
+        Difi = request.args.get('difficulty')
+        gen_qs = create_trivia(db.session, Categ, Difi, "multiple")
+        wrong_1s = WrongAnswer.query.filter_by(question_id=gen_qs.id).all()
+        dudes = [(gump.wrong , gump.wrong) for gump in wrong_1s] + [( gen_qs.correct, gen_qs.correct)]
+        random.shuffle(dudes)
+        SuperCorrect = gen_qs.correct
+        answerform.option.choices = dudes
+        return render_template('play.html', form=answerform, q=gen_qs.text, choices=choices, cont=0)
 
-# TODO: TRY THIS
-@app.route('/answers', methods=["GET","POST"])
-@login_required
-def trivia_answers():
-    """This route should retrieve and display the correct answers for the trivia
-    questions that the user answered and compare them to their answers. WILL
-    POST TO SAME PAGE."""
-    pass
+    if request.method == 'POST':
+        user_answer = answerform.option.data
+        correct_ans = SuperCorrect
+        return render_template('play.html', form=answerform, ca=correct_ans, ya=user_answer, cont=1)
 
-# TODO: TRY THIS
-@app.route('/scorescreen', methods=["GET","POST"])
-@login_required
-def score():
-    """Simply renders a template that shows the user how many questions they
-    have answered correctly."""
-    pass
-
-"""Renders a form and template that allow a user to input their own question
-and an answer for it, then save it."""
+"""Renders a form and template that allows a user to input their own question and an answer for it, then save it."""
 @app.route('/makeyourown', methods=["GET","POST"])
 @login_required
 def create_question():
@@ -289,9 +295,7 @@ def create_question():
         return redirect(url_for('create_question'))
     return render_template('create.html', form=create_form)
 
-"""Retrieves all of a user's self-created trivia questions with answers
-and displays them. (I might include functionality to just show the questions
-and then let them try to input the answer.)"""
+"""Retrieves all of a user's self-created trivia questions with answers and displays them."""
 @app.route('/yourtrivia', methods=["GET","POST"])
 @login_required
 def see_my_questions():
@@ -322,15 +326,10 @@ def delete(q):
     flash("Successfully deleted question!")
     return redirect(url_for('see_my_questions'))
 
-# TODO: TRY THIS
-@app.route('/freeusertrivia', methods=["GET","POST"])
-def see_all_user_trivia():
-    """I have no idea if this will work, but I want to try and make a route that
-    lets people who haven't logged in see all the trivia questions generated by
-    other users."""
-    pass
+#######################################
+##### Login/Logout/Callback views #####
+#######################################
 
-##### Login/Logout/Callback views
 @app.route('/login')
 def login():
     if current_user.is_authenticated:
@@ -341,7 +340,7 @@ def login():
     session['oauth_state'] = state
     return render_template('login.html', auth_url=auth_url)
 
-##### Taken from  the Sample-Login-OAuth-Example. To be adapted once I figure out exactly what it's for. /gCallback is used in OAuth config above #####
+""" Taken from  the Sample-Login-OAuth-Example and adapted """
 @app.route('/oauthCallback')
 def callback():
     if current_user is not None and current_user.is_authenticated:
@@ -382,7 +381,6 @@ def callback():
             login_user(user)
             return redirect(url_for('home'))
         return 'Could not fetch your information.'
-
 
 @app.route('/logout')
 @login_required

@@ -14,16 +14,14 @@
     <li><a href="{{ url_for('logout') }}">Log out</a></li><br>
     <li><a href="{{ url_for('home')}}">Go home.</a></li>
     <li><a href="{{ url_for('play_trivia')}}">Play trivia!</a></li>
-    <li><a href="{{ url_for('score')}}">See your scores</a></li>
     <li><a href="{{ url_for('create_question')}}">Create your own questions</a></li>
     <li><a href="{{ url_for('see_my_questions')}}">See your trivia questions</a></li>
-    <li><a href="{{ url_for('see_all_user_trivia')}}">See all user-created questions</a></li>
 </ul>
 <p>------------</p>
 {% endblock %}
 
 {% block content %}
-<form action="{{ url_for('play_trivia') }}" method="POST">
+<form action="{{ url_for('play_trivia') }}" method="GET">
     {{ form.category.label() }}{{ form.category() }}<br>
     {{ form.difficulty.label() }}{{ form.difficulty() }}<br>
     {{ form.submit() }}

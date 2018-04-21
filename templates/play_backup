@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2> Answer a Trivia Question!</h2><br><br>
+<ul>
+    <li><b>{{ q }}</b></li><br>
+    <form action="{{ url_for('play_trivia') }}" method="POST">
+        {{ form.option.label() }}{{ form.category() }}<br>
+        <!--{% for key,value in choices.items() %}
+          <input type="radio" name="anz" value="{{ key }}"> {{ value }}<br>
+        {% endfor %} -->
+  <br>{{ form.submit() }}
+  {{ form.hidden_tag() }}
+  </form>
+  </ul>
+  <br><br>
+
+  {% if cont %}
+    <h3>Correct Answer: </h3>{{ ca }}<br>
+    <h3>Your Answer: </h3>{{ ya }}<br><br>
+
+    <a href="{{ url_for('play_trivia')}}">Play again!</a>
+    {% endif %}
+
+{% endblock %}
