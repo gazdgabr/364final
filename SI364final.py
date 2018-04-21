@@ -100,7 +100,7 @@ class User(db.Model, UserMixin):
     avatar = db.Column(db.String(200))
     tokens = db.Column(db.Text)
     api_token = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow()) ## do i need this?
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow())
     trivia = db.relationship('Trivia',secondary=user_questions,backref=db.backref('questions',lazy='dynamic'),lazy='dynamic')
 
 class Trivia(db.Model):
@@ -193,14 +193,14 @@ class DeleteButtonForm(FlaskForm):
 ########  HELPER FUNCTIONS  ##########
 ######################################
 
-def grab_session_token():
+def get_or_create_session_token():
     token_url = "https://opentdb.com/api_token.php?command=request"
     token_dict = json.loads(requests.get(token_url).text)
     token = token_dict["token"]
     return token
 
 def hit_trivia_api(category, difficulty, type):
-    session = grab_session_token()
+    session = get_or_create_session_token()
     base_url = 'https://opentdb.com/api.php?'
 
     if category == 'any':
@@ -376,6 +376,7 @@ def callback():
             # print(token)
             user.tokens = json.dumps(token)
             user.avatar = user_data['picture']
+            #user.api_token = get_or_create_session_token()
             db.session.add(user)
             db.session.commit()
             login_user(user)

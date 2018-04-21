@@ -87,7 +87,7 @@ by all logged in users are listed. They cannot see who created each one, though.
       file must be called** `SI364final.py`**, but of course you may include
       other files if you need.**
 
-- [ ] **A user should be able to load `http://localhost:5000` and see the first
+- [x] **A user should be able to load `http://localhost:5000` and see the first
       page they ought to see on the application.**
 
 - [x] **Include navigation in `base.html` with links (using `a href` tags) that
@@ -119,6 +119,7 @@ by all logged in users are listed. They cannot see who created each one, though.
       use it to effect in the application (e.g. won't count if you make a query
       that has no effect on what you see, what is saved, or anything that
       happens in the app).
+      *realized at the end that I hadn't needed to - oops*
 
 - [x] **At least one query of data using an `.all()` method and send the results
       of that query to a template.**
@@ -143,7 +144,7 @@ by all logged in users are listed. They cannot see who created each one, though.
 - [x] **Include at least 4 template `.html` files in addition to the error
       handling template files.**
 
-  - [x] **At least one Jinja template for loop and at least two Jinja template
+- [x] **At least one Jinja template for loop and at least two Jinja template
         conditionals should occur amongst the templates.**
 
 - [x] **At least one request to a REST API that is based on data submitted in a
@@ -151,7 +152,7 @@ by all logged in users are listed. They cannot see who created each one, though.
       BeautifulSoup that *does* accord with other involved sites' Terms of
       Service, etc).**
 
-  - [x] **Your application should use data from a REST API or other source such
+- [x] **Your application should use data from a REST API or other source such
         that the application processes the data in some way and saves some
         information that came from the source *to the database* (in some way).**
 
